@@ -100,11 +100,43 @@ mod day_02 {
             .iter()
             .filter(|p| {
                 let mut letters = p.password.chars();
-                (letters.clone().nth(p.min_occurrences - 1) == Some(p.constrained_char)) as usize
-                    + (letters.nth(p.max_occurrences - 1) == Some(p.constrained_char)) as usize
-                    == 1
+                (letters.clone().nth(p.min_occurrences - 1) == Some(p.constrained_char))
+                    != (letters.nth(p.max_occurrences - 1) == Some(p.constrained_char))
             })
             .count()
+    }
+}
+
+mod day_03 {
+    pub fn try_slope(rows: &[&str], (slope_col, slope_row): (usize, usize)) -> usize {
+        let mut row = slope_row;
+        let mut col = slope_col;
+        let mut trees_hit = 0;
+        while row < rows.len() {
+            if let Some('#') = rows
+                .get(row)
+                .and_then(|row| row.chars().nth(col % row.len()))
+            {
+                trees_hit += 1;
+            }
+            row += slope_row;
+            col += slope_col;
+        }
+        trees_hit
+    }
+
+    pub fn a(input: &str) -> usize {
+        let rows: Vec<_> = input.lines().collect();
+        try_slope(&rows, (3, 1))
+    }
+
+    pub fn b(input: &str) -> usize {
+        let rows: Vec<_> = input.lines().collect();
+        try_slope(&rows, (1, 1))
+            * try_slope(&rows, (3, 1))
+            * try_slope(&rows, (5, 1))
+            * try_slope(&rows, (7, 1))
+            * try_slope(&rows, (1, 2))
     }
 }
 
@@ -120,4 +152,10 @@ fn main() {
 
     println!("day 02 a: {:?}", day_02::a(include_str!("./input-02.txt")));
     println!("day 02 b: {:?}", day_02::b(include_str!("./input-02.txt")));
+
+    assert_eq!(day_03::a(include_str!("./example-03.txt")), 7);
+    assert_eq!(day_03::b(include_str!("./example-03.txt")), 336);
+
+    println!("day 03 a: {:?}", day_03::a(include_str!("./input-03.txt")));
+    println!("day 03 b: {:?}", day_03::b(include_str!("./input-03.txt")));
 }
