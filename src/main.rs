@@ -1,3 +1,10 @@
+fn split<'a>(input: &'a str, search: &str) -> Option<(&'a str, &'a str)> {
+    let mut iter = input.splitn(2, search);
+    let fst = iter.next();
+    let snd = iter.next();
+    fst.and_then(|fst| snd.map(|snd| (fst, snd)))
+}
+
 mod day_01 {
     use std::collections::HashSet;
 
@@ -40,19 +47,14 @@ mod day_01 {
 mod day_02 {
     use std::collections::HashMap;
 
+    use crate::split;
+
     #[derive(Debug)]
     struct PasswordExample {
         min_occurrences: usize,
         max_occurrences: usize,
         constrained_char: char,
         password: String,
-    }
-
-    fn split<'a>(input: &'a str, search: &str) -> Option<(&'a str, &'a str)> {
-        let mut iter = input.splitn(2, search);
-        let fst = iter.next();
-        let snd = iter.next();
-        fst.and_then(|fst| snd.map(|snd| (fst, snd)))
     }
 
     fn parse_passwords(input: &str) -> Vec<PasswordExample> {
@@ -140,6 +142,96 @@ mod day_03 {
     }
 }
 
+mod day_04 {
+    use std::collections::HashMap;
+
+    use crate::split;
+
+    const REQUIRED: &[&str] = &["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"]; // "cid"
+    const ECL: &[&str] = &["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
+
+    fn parse_passports(input: &str) -> Vec<HashMap<&str, &str>> {
+        let mut passports = vec![];
+        let mut passport = HashMap::new();
+        for line in input.lines() {
+            if line.is_empty() {
+                passports.push(std::mem::take(&mut passport));
+            }
+            for kv in line.split_whitespace() {
+                if let Some((k, v)) = split(kv, ":") {
+                    passport.insert(k, v);
+                }
+            }
+        }
+        passports.push(passport);
+        passports
+    }
+
+    fn is_valid_a(pp: &HashMap<&str, &str>) -> bool {
+        REQUIRED.iter().all(|k| pp.contains_key(k))
+    }
+
+    fn is_valid_b(pp: HashMap<&str, &str>) -> Option<bool> {
+        let byr: usize = pp.get("byr")?.parse().ok()?;
+        if byr < 1920 || byr > 2002 {
+            return None;
+        }
+        let iyr: usize = pp.get("iyr")?.parse().ok()?;
+        if iyr < 2010 || iyr > 2020 {
+            return None;
+        }
+        let eyr: usize = pp.get("eyr")?.parse().ok()?;
+        if eyr < 2020 || eyr > 2030 {
+            return None;
+        }
+
+        let hgt = pp.get("hgt")?;
+        if let Some(hgt) = hgt.strip_suffix("cm") {
+            let cm: usize = hgt.parse().ok()?;
+            if cm < 150 || cm > 193 {
+                return None;
+            }
+        } else if let Some(hgt) = hgt.strip_suffix("in") {
+            let inch: usize = hgt.parse().ok()?;
+            if inch < 59 || inch > 76 {
+                return None;
+            }
+        } else {
+            return None;
+        }
+
+        let hcl = pp.get("hcl")?.strip_prefix("#")?;
+        if hcl.len() != 6 || hcl.chars().any(|c| !c.is_digit(16)) {
+            return None;
+        }
+        let ecl = pp.get("ecl")?;
+        if !ECL.contains(ecl) {
+            return None;
+        }
+
+        let pid = pp.get("pid")?;
+        if pid.len() != 9 || pid.chars().any(|c| !c.is_numeric()) {
+            return None;
+        }
+
+        Some(true)
+    }
+
+    pub fn a(input: &str) -> usize {
+        parse_passports(input)
+            .into_iter()
+            .filter(is_valid_a)
+            .count()
+    }
+
+    pub fn b(input: &str) -> usize {
+        parse_passports(input)
+            .into_iter()
+            .filter_map(is_valid_b)
+            .count()
+    }
+}
+
 fn main() {
     assert_eq!(day_01::a(include_str!("./example-01.txt")), Some(514579));
     assert_eq!(day_01::b(include_str!("./example-01.txt")), Some(241861950));
@@ -158,4 +250,9 @@ fn main() {
 
     println!("day 03 a: {:?}", day_03::a(include_str!("./input-03.txt")));
     println!("day 03 b: {:?}", day_03::b(include_str!("./input-03.txt")));
+
+    assert_eq!(day_04::a(include_str!("./example-04.txt")), 2);
+
+    println!("day 04 a: {:?}", day_04::a(include_str!("./input-04.txt")));
+    println!("day 04 b: {:?}", day_04::b(include_str!("./input-04.txt")));
 }
