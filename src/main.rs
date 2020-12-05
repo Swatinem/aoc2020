@@ -27,20 +27,22 @@ mod day_01 {
         None
     }
 
-    pub fn a(input: &str) -> Option<usize> {
+    pub fn a(input: &str) -> usize {
         let numbers = read_numbers(input);
-        find_sums_to(&numbers, 2020).map(|(first_num, second_num)| first_num * second_num)
+        find_sums_to(&numbers, 2020)
+            .map(|(first_num, second_num)| first_num * second_num)
+            .unwrap_or_default()
     }
 
-    pub fn b(input: &str) -> Option<usize> {
+    pub fn b(input: &str) -> usize {
         let numbers = read_numbers(input);
 
         for first_num in numbers.iter().copied() {
             if let Some((second_num, third_num)) = find_sums_to(&numbers, 2020 - first_num) {
-                return Some(first_num * second_num * third_num);
+                return first_num * second_num * third_num;
             }
         }
-        None
+        0
     }
 }
 
@@ -232,9 +234,75 @@ mod day_04 {
     }
 }
 
+mod day_05 {
+    use std::ops::Range;
+
+    const ROWS: usize = 128;
+    const COLUMNS: usize = 8;
+
+    fn len(range: &Range<usize>) -> usize {
+        range.end - range.start
+    }
+
+    fn decode_boarding_pass(input: &str) -> (usize, usize) {
+        let mut row = 0..ROWS;
+        let mut column = 0..COLUMNS;
+        for c in input.chars() {
+            match c {
+                'F' => {
+                    row.end -= len(&row) / 2;
+                }
+                'B' => {
+                    row.start += len(&row) / 2;
+                }
+                'L' => {
+                    column.end -= len(&column) / 2;
+                }
+                'R' => {
+                    column.start += len(&column) / 2;
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        (row.start, column.start)
+    }
+
+    fn seat_id((row, column): (usize, usize)) -> usize {
+        row * COLUMNS + column
+    }
+
+    pub fn a(input: &str) -> usize {
+        input
+            .lines()
+            .map(decode_boarding_pass)
+            .map(seat_id)
+            .max()
+            .unwrap_or_default()
+    }
+
+    pub fn b(input: &str) -> usize {
+        let mut seats: Vec<_> = input
+            .lines()
+            .map(decode_boarding_pass)
+            .map(seat_id)
+            .collect();
+        seats.sort_unstable();
+        for win in seats.windows(2) {
+            match win {
+                [a, b] if b - a == 2 => {
+                    return a + 1;
+                }
+                _ => {}
+            }
+        }
+        0
+    }
+}
+
 fn main() {
-    assert_eq!(day_01::a(include_str!("./example-01.txt")), Some(514579));
-    assert_eq!(day_01::b(include_str!("./example-01.txt")), Some(241861950));
+    assert_eq!(day_01::a(include_str!("./example-01.txt")), 514579);
+    assert_eq!(day_01::b(include_str!("./example-01.txt")), 241861950);
 
     println!("day 01 a: {:?}", day_01::a(include_str!("./input-01.txt")));
     println!("day 01 b: {:?}", day_01::b(include_str!("./input-01.txt")));
@@ -255,4 +323,9 @@ fn main() {
 
     println!("day 04 a: {:?}", day_04::a(include_str!("./input-04.txt")));
     println!("day 04 b: {:?}", day_04::b(include_str!("./input-04.txt")));
+
+    assert_eq!(day_05::a(include_str!("./example-05.txt")), 820);
+
+    println!("day 05 a: {:?}", day_05::a(include_str!("./input-05.txt")));
+    println!("day 05 b: {:?}", day_05::b(include_str!("./input-05.txt")));
 }
