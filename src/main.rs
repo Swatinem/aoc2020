@@ -300,6 +300,159 @@ mod day_05 {
     }
 }
 
+mod day_06 {
+    use std::collections::{HashMap, HashSet};
+
+    pub fn a(input: &str) -> usize {
+        let mut group = HashSet::new();
+        let mut sum = 0;
+
+        for line in input.lines() {
+            if line.is_empty() {
+                sum += group.len();
+                group.clear();
+            }
+
+            for c in line.chars() {
+                group.insert(c);
+            }
+        }
+        sum += group.len();
+
+        sum
+    }
+
+    pub fn count_matching(map: &HashMap<char, usize>, needle: usize) -> usize {
+        map.values().copied().filter(|v| *v == needle).count()
+    }
+
+    pub fn b(input: &str) -> usize {
+        let mut group = HashMap::new();
+        let mut sum = 0;
+        let mut count = 0;
+
+        for line in input.lines() {
+            if line.is_empty() {
+                sum += count_matching(&group, count);
+                count = 0;
+                group.clear();
+                continue;
+            }
+
+            for c in line.chars() {
+                group.entry(c).and_modify(|v| *v += 1).or_insert(1);
+            }
+            count += 1;
+        }
+        sum += count_matching(&group, count);
+
+        sum
+    }
+}
+
+mod day_07 {
+    use std::collections::HashMap;
+
+    use crate::split;
+
+    #[derive(Debug)]
+    struct Bag {
+        color: String,
+        children: HashMap<String, usize>,
+    }
+
+    fn parse_bag(input: &str) -> Option<Bag> {
+        let (color, mut rest) = split(input, " bags contain ")?;
+        let mut bag = Bag {
+            color: color.to_owned(),
+            children: HashMap::new(),
+        };
+
+        if rest != "no other bags." {
+            loop {
+                let (num, rest2) = split(rest, " ")?;
+                let num = num.parse().ok()?;
+                let (color, mut rest2) = split(rest2, " bag")?;
+                bag.children.insert(color.to_owned(), num);
+                if let Some(rest3) = rest2.strip_prefix("s") {
+                    rest2 = rest3;
+                }
+                if let Some(rest3) = rest2.strip_prefix(", ") {
+                    rest = rest3;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        Some(bag)
+    }
+
+    fn parse_bags(input: &str) -> HashMap<String, Bag> {
+        let mut bags = HashMap::new();
+        for line in input.lines() {
+            if let Some(bag) = parse_bag(line) {
+                bags.insert(bag.color.clone(), bag);
+            }
+        }
+        bags
+    }
+
+    fn does_contain(
+        bags: &HashMap<String, Bag>,
+        cache: &mut HashMap<String, bool>,
+        id: &str,
+        needle: &str,
+    ) -> bool {
+        if let Some(contains) = cache.get(id) {
+            return *contains;
+        }
+        if let Some(bag) = bags.get(id) {
+            let does_contain = bag
+                .children
+                .iter()
+                .any(|(id, _)| id == needle || does_contain(bags, cache, id, needle));
+            cache.insert(id.to_owned(), does_contain);
+            return does_contain;
+        }
+        false
+    }
+
+    pub fn a(input: &str) -> usize {
+        let bags = parse_bags(input);
+        let mut cache = HashMap::new();
+        bags.keys()
+            .filter(|color| does_contain(&bags, &mut cache, color.as_ref(), "shiny gold"))
+            .count()
+    }
+
+    fn total_count(
+        bags: &HashMap<String, Bag>,
+        cache: &mut HashMap<String, usize>,
+        id: &str,
+    ) -> usize {
+        if let Some(contains) = cache.get(id) {
+            return *contains;
+        }
+        if let Some(bag) = bags.get(id) {
+            let child_count = bag
+                .children
+                .iter()
+                .map(|(id, num)| *num * (1 + total_count(bags, cache, id)))
+                .sum();
+            cache.insert(id.to_owned(), child_count);
+            return child_count;
+        }
+        0
+    }
+
+    pub fn b(input: &str) -> usize {
+        let bags = parse_bags(input);
+        let mut cache = HashMap::new();
+        total_count(&bags, &mut cache, "shiny gold")
+    }
+}
+
 fn main() {
     assert_eq!(day_01::a(include_str!("./example-01.txt")), 514579);
     assert_eq!(day_01::b(include_str!("./example-01.txt")), 241861950);
@@ -328,4 +481,16 @@ fn main() {
 
     println!("day 05 a: {:?}", day_05::a(include_str!("./input-05.txt")));
     println!("day 05 b: {:?}", day_05::b(include_str!("./input-05.txt")));
+
+    assert_eq!(day_06::a(include_str!("./example-06.txt")), 11);
+    assert_eq!(day_06::b(include_str!("./example-06.txt")), 6);
+
+    println!("day 06 a: {:?}", day_06::a(include_str!("./input-06.txt")));
+    println!("day 06 b: {:?}", day_06::b(include_str!("./input-06.txt")));
+
+    assert_eq!(day_07::a(include_str!("./example-07.txt")), 4);
+    assert_eq!(day_07::b(include_str!("./example-07b.txt")), 126);
+
+    println!("day 07 a: {:?}", day_07::a(include_str!("./input-07.txt")));
+    println!("day 07 b: {:?}", day_07::b(include_str!("./input-07.txt")));
 }
