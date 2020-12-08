@@ -1,4 +1,4 @@
-use crate::utils::Inputs;
+use crate::utils::{example, input};
 
 mod day_01 {
     use std::collections::HashSet;
@@ -449,46 +449,45 @@ mod day_07 {
 }
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let mut i = Inputs::new();
+    assert_eq!(day_01::a(&example("01")?), 514579);
+    assert_eq!(day_01::b(&example("01")?), 241861950);
 
-    assert_eq!(day_01::a(i.example("01")?), 514579);
-    assert_eq!(day_01::b(i.example("01")?), 241861950);
+    println!("day 01 a: {:?}", day_01::a(&input("01")?));
+    println!("day 01 b: {:?}", day_01::b(&input("01")?));
 
-    println!("day 01 a: {:?}", day_01::a(i.input("01")?));
-    println!("day 01 b: {:?}", day_01::b(i.input("01")?));
+    assert_eq!(day_02::a(&example("02")?), 2);
+    assert_eq!(day_02::b(&example("02")?), 1);
 
-    assert_eq!(day_02::a(i.example("02")?), 2);
-    assert_eq!(day_02::b(i.example("02")?), 1);
+    println!("day 02 a: {:?}", day_02::a(&input("02")?));
+    println!("day 02 b: {:?}", day_02::b(&input("02")?));
 
-    println!("day 02 a: {:?}", day_02::a(i.input("02")?));
-    println!("day 02 b: {:?}", day_02::b(i.input("02")?));
+    assert_eq!(day_03::a(&example("03")?), 7);
+    assert_eq!(day_03::b(&example("03")?), 336);
 
-    assert_eq!(day_03::a(i.example("03")?), 7);
-    assert_eq!(day_03::b(i.example("03")?), 336);
+    println!("day 03 a: {:?}", day_03::a(&input("03")?));
+    println!("day 03 b: {:?}", day_03::b(&input("03")?));
 
-    println!("day 03 a: {:?}", day_03::a(i.input("03")?));
-    println!("day 03 b: {:?}", day_03::b(i.input("03")?));
+    assert_eq!(day_04::a(&example("04")?), 2);
 
-    assert_eq!(day_04::a(i.example("04")?), 2);
+    println!("day 04 a: {:?}", day_04::a(&input("04")?));
+    println!("day 04 b: {:?}", day_04::b(&input("04")?));
 
-    println!("day 04 a: {:?}", day_04::a(i.input("04")?));
-    println!("day 04 b: {:?}", day_04::b(i.input("04")?));
+    assert_eq!(day_05::a(&example("05")?), 820);
 
-    assert_eq!(day_05::a(i.example("05")?), 820);
+    println!("day 05 a: {:?}", day_05::a(&input("05")?));
+    println!("day 05 b: {:?}", day_05::b(&input("05")?));
 
-    println!("day 05 a: {:?}", day_05::a(i.input("05")?));
-    println!("day 05 b: {:?}", day_05::b(i.input("05")?));
+    assert_eq!(day_06::a(&example("06")?), 11);
+    assert_eq!(day_06::b(&example("06")?), 6);
 
-    assert_eq!(day_06::a(i.example("06")?), 11);
-    assert_eq!(day_06::b(i.example("06")?), 6);
+    println!("day 06 a: {:?}", day_06::a(&input("06")?));
+    println!("day 06 b: {:?}", day_06::b(&input("06")?));
 
-    println!("day 06 a: {:?}", day_06::a(i.input("06")?));
-    println!("day 06 b: {:?}", day_06::b(i.input("06")?));
+    assert_eq!(day_07::a(&example("07")?), 4);
+    assert_eq!(day_07::b(&example("07b")?), 126);
 
-    assert_eq!(day_07::a(i.example("07")?), 4);
-    assert_eq!(day_07::b(i.example("07b")?), 126);
+    println!("day 07 a: {:?}", day_07::a(&input("07")?));
+    println!("day 07 b: {:?}", day_07::b(&input("07")?));
 
-    println!("day 07 a: {:?}", day_07::a(i.input("07")?));
-    println!("day 07 b: {:?}", day_07::b(i.input("07")?));
     Ok(())
 }
