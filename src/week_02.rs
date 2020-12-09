@@ -114,12 +114,78 @@ mod day_08 {
     }
 }
 
+mod day_09 {
+
+    fn has_sums_to(numbers: &[usize], needle: usize) -> bool {
+        let mut numbers = Vec::from(numbers);
+        numbers.sort_unstable();
+        for num in numbers.iter().copied() {
+            if num > needle / 2 {
+                return false;
+            }
+            let pair = needle - num;
+            if matches!(numbers.binary_search(&pair), Ok(_)) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn parse_numbers(input: &str) -> Vec<usize> {
+        input.lines().filter_map(|line| line.parse().ok()).collect()
+    }
+
+    fn find_invalid(numbers: &[usize], window: usize) -> usize {
+        for window in numbers.windows(window + 1) {
+            let needle = window.last().copied().unwrap_or(0);
+            if !has_sums_to(&window[..window.len() - 1], needle) {
+                return needle;
+            }
+        }
+        0
+    }
+
+    pub fn a(input: &str, window: usize) -> usize {
+        find_invalid(&parse_numbers(input), window)
+    }
+
+    pub fn b(input: &str, window: usize) -> usize {
+        let numbers = parse_numbers(input);
+        let invalid = find_invalid(&numbers, window);
+        let mut numbers_slice = numbers.as_slice();
+        while !numbers_slice.is_empty() {
+            let mut sum = 0;
+            let mut smallest = std::usize::MAX;
+            let mut largest = 0;
+            for n in numbers_slice.iter().copied() {
+                smallest = smallest.min(n);
+                largest = largest.max(n);
+                sum += n;
+                if sum == invalid {
+                    return smallest + largest;
+                }
+                if sum > invalid {
+                    break;
+                }
+            }
+            numbers_slice = &numbers_slice[1..];
+        }
+        0
+    }
+}
+
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(day_08::a(&example("08")?), 5);
     assert_eq!(day_08::b(&example("08")?), 8);
 
     println!("day 08 a: {:?}", day_08::a(&input("08")?));
     println!("day 08 b: {:?}", day_08::b(&input("08")?));
+
+    assert_eq!(day_09::a(&example("09")?, 5), 127);
+    assert_eq!(day_09::b(&example("09")?, 5), 62);
+
+    println!("day 09 a: {:?}", day_09::a(&input("09")?, 25));
+    println!("day 09 b: {:?}", day_09::b(&input("09")?, 25));
 
     Ok(())
 }
