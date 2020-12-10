@@ -115,7 +115,6 @@ mod day_08 {
 }
 
 mod day_09 {
-
     fn has_sums_to(numbers: &[usize], needle: usize) -> bool {
         let mut numbers = Vec::from(numbers);
         numbers.sort_unstable();
@@ -174,6 +173,53 @@ mod day_09 {
     }
 }
 
+mod day_10 {
+    use std::collections::HashMap;
+
+    fn parse_sorted_numbers(input: &str) -> Vec<usize> {
+        let mut numbers: Vec<_> = input.lines().filter_map(|line| line.parse().ok()).collect();
+        numbers.push(0);
+        numbers.sort_unstable();
+        numbers.push(numbers.last().copied().unwrap_or(0) + 3);
+        numbers
+    }
+
+    pub fn a(input: &str) -> usize {
+        let numbers = parse_sorted_numbers(input);
+
+        let mut diff1 = 0;
+        let mut diff3 = 0;
+        let mut last = 0;
+        for num in numbers.into_iter() {
+            match num - last {
+                1 => diff1 += 1,
+                3 => diff3 += 1,
+                _ => {}
+            }
+            last = num;
+        }
+
+        diff1 * diff3
+    }
+
+    /// I cheated :-( Took inspiration from:
+    /// <https://dev.to/qviper/advent-of-code-2020-python-solution-day-10-30kd>
+    pub fn b(input: &str) -> usize {
+        let numbers = parse_sorted_numbers(input);
+        let mut map = HashMap::new();
+        map.insert(0, 1);
+        let last = numbers.last().copied().unwrap_or(0);
+        for num in numbers.into_iter().skip(1) {
+            let mut possible_predecessors = 0;
+            possible_predecessors += map.get(&num.wrapping_sub(1)).copied().unwrap_or(0);
+            possible_predecessors += map.get(&num.wrapping_sub(2)).copied().unwrap_or(0);
+            possible_predecessors += map.get(&num.wrapping_sub(3)).copied().unwrap_or(0);
+            map.insert(num, possible_predecessors);
+        }
+        map.get(&last).copied().unwrap_or(0)
+    }
+}
+
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(day_08::a(&example("08")?), 5);
     assert_eq!(day_08::b(&example("08")?), 8);
@@ -186,6 +232,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("day 09 a: {:?}", day_09::a(&input("09")?, 25));
     println!("day 09 b: {:?}", day_09::b(&input("09")?, 25));
+
+    assert_eq!(day_10::a(&example("10a1")?), 35);
+    assert_eq!(day_10::a(&example("10a2")?), 220);
+    assert_eq!(day_10::b(&example("10a1")?), 8);
+    assert_eq!(day_10::b(&example("10a2")?), 19208);
+
+    println!("day 10 a: {:?}", day_10::a(&input("10")?));
+    println!("day 10 b: {:?}", day_10::b(&input("10")?));
 
     Ok(())
 }
