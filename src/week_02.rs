@@ -264,13 +264,6 @@ mod day_11 {
             })
         }
 
-        pub fn get(&self, Coord { row, column }: Coord) -> Option<&T> {
-            if column >= self.columns {
-                return None;
-            }
-            self.data.get(row * self.columns + column)
-        }
-
         fn trace_direction<F>(
             &self,
             coord: Coord,
@@ -301,7 +294,7 @@ mod day_11 {
                     (n, 1) => n + 1,
                     (n, _) => n,
                 };
-                let val = self.get(Coord { row, column })?;
+                let val = self.data.get(row * self.columns + column)?;
 
                 if filter(val) {
                     return Some(val);
@@ -332,6 +325,10 @@ mod day_11 {
                 row: i / columns,
                 column: i % columns,
             })
+        }
+
+        pub fn values(&self) -> impl Iterator<Item = &T> + '_ {
+            self.data.iter()
         }
 
         pub fn mut_values(&mut self) -> impl Iterator<Item = &mut T> + '_ {
@@ -375,18 +372,24 @@ mod day_11 {
         Matrix::from_column_vec(data, columns).unwrap()
     }
 
-    fn simulate_a(mut start: Matrix<Seat>) -> Matrix<Seat> {
+    fn simulate<F>(mut start: Matrix<Seat>, filter: F, neighbor_threshold: usize) -> Matrix<Seat>
+    where
+        F: Fn(&Seat) -> bool,
+    {
         let mut simulated = start.clone();
 
         loop {
             // println!("{}", start);
 
-            for (coord, new_seat) in start.coords().zip(simulated.mut_values()) {
-                let seat = *start.get(coord).unwrap();
+            for ((coord, seat), new_seat) in start
+                .coords()
+                .zip(start.values().copied())
+                .zip(simulated.mut_values())
+            {
                 if seat == Seat::Floor {
                     continue;
                 }
-                let neighbors = start.neighbors(coord, |_| true);
+                let neighbors = start.neighbors(coord, &filter);
                 let occupied = neighbors
                     .iter()
                     .filter_map(|o| *o)
@@ -395,43 +398,7 @@ mod day_11 {
 
                 let seat_decision = if seat == Seat::Empty && occupied == 0 {
                     Seat::Occupied
-                } else if seat == Seat::Occupied && occupied >= 4 {
-                    Seat::Empty
-                } else {
-                    seat
-                };
-
-                *new_seat = seat_decision;
-            }
-
-            if simulated == start {
-                return simulated;
-            }
-            std::mem::swap(&mut simulated, &mut start);
-        }
-    }
-
-    fn simulate_b(mut start: Matrix<Seat>) -> Matrix<Seat> {
-        let mut simulated = start.clone();
-
-        loop {
-            // println!("{}", start);
-
-            for (coord, new_seat) in start.coords().zip(simulated.mut_values()) {
-                let seat = *start.get(coord).unwrap();
-                if seat == Seat::Floor {
-                    continue;
-                }
-                let neighbors = start.neighbors(coord, |seat| *seat != Seat::Floor);
-                let occupied = neighbors
-                    .iter()
-                    .filter_map(|o| *o)
-                    .filter(|seat| **seat == Seat::Occupied)
-                    .count();
-
-                let seat_decision = if seat == Seat::Empty && occupied == 0 {
-                    Seat::Occupied
-                } else if seat == Seat::Occupied && occupied >= 5 {
+                } else if seat == Seat::Occupied && occupied >= neighbor_threshold {
                     Seat::Empty
                 } else {
                     seat
@@ -449,7 +416,7 @@ mod day_11 {
 
     pub fn a(input: &str) -> usize {
         let layout = parse_layout(input);
-        let mut layout = simulate_a(layout);
+        let mut layout = simulate(layout, |_| true, 4);
         layout
             .mut_values()
             .filter(|seat| **seat == Seat::Occupied)
@@ -458,7 +425,7 @@ mod day_11 {
 
     pub fn b(input: &str) -> usize {
         let layout = parse_layout(input);
-        let mut layout = simulate_b(layout);
+        let mut layout = simulate(layout, |seat| *seat != Seat::Floor, 5);
         layout
             .mut_values()
             .filter(|seat| **seat == Seat::Occupied)
