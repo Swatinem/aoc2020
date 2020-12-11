@@ -220,6 +220,252 @@ mod day_10 {
     }
 }
 
+mod day_11 {
+    use std::fmt::Display;
+
+    #[derive(Copy, Clone, Debug)]
+    struct Coord {
+        row: usize,
+        column: usize,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Matrix<T> {
+        rows: usize,
+        columns: usize,
+        data: Vec<T>,
+    }
+
+    impl<T> Display for Matrix<T>
+    where
+        T: Display,
+    {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            for row in 0..self.rows {
+                for item in &self.data[(row * self.columns)..((row + 1) * self.columns)] {
+                    write!(f, "{}", item)?;
+                }
+                writeln!(f)?;
+            }
+            Ok(())
+        }
+    }
+
+    impl<T> Matrix<T> {
+        pub fn from_column_vec(data: Vec<T>, columns: usize) -> Option<Self> {
+            let len = data.len();
+            if len % columns != 0 {
+                return None;
+            }
+            Some(Self {
+                rows: len / columns,
+                columns,
+                data,
+            })
+        }
+
+        pub fn get(&self, Coord { row, column }: Coord) -> Option<&T> {
+            if column >= self.columns {
+                return None;
+            }
+            self.data.get(row * self.columns + column)
+        }
+
+        fn trace_direction<F>(
+            &self,
+            coord: Coord,
+            row_dir: isize,
+            col_dir: isize,
+            filter: &F,
+        ) -> Option<&T>
+        where
+            F: Fn(&T) -> bool,
+        {
+            let Coord {
+                mut row,
+                mut column,
+            } = coord;
+
+            loop {
+                row = match (row, row_dir) {
+                    (0, -1) => return None,
+                    (n, 1) if n == self.rows - 1 => return None,
+                    (n, -1) => n - 1,
+                    (n, 1) => n + 1,
+                    (n, _) => n,
+                };
+                column = match (column, col_dir) {
+                    (0, -1) => return None,
+                    (n, 1) if n == self.columns - 1 => return None,
+                    (n, -1) => n - 1,
+                    (n, 1) => n + 1,
+                    (n, _) => n,
+                };
+                let val = self.get(Coord { row, column })?;
+
+                if filter(val) {
+                    return Some(val);
+                }
+            }
+        }
+
+        pub fn neighbors<F>(&self, coord: Coord, filter: F) -> [Option<&T>; 8]
+        where
+            F: Fn(&T) -> bool,
+        {
+            [
+                self.trace_direction(coord, -1, -1, &filter),
+                self.trace_direction(coord, -1, 0, &filter),
+                self.trace_direction(coord, -1, 1, &filter),
+                self.trace_direction(coord, 0, -1, &filter),
+                // Nope: self.trace_direction(coord, 0, 0, &filter),
+                self.trace_direction(coord, 0, 1, &filter),
+                self.trace_direction(coord, 1, -1, &filter),
+                self.trace_direction(coord, 1, 0, &filter),
+                self.trace_direction(coord, 1, 1, &filter),
+            ]
+        }
+
+        pub fn coords(&self) -> impl Iterator<Item = Coord> + '_ {
+            let columns = self.columns;
+            (0..self.data.len()).map(move |i| Coord {
+                row: i / columns,
+                column: i % columns,
+            })
+        }
+
+        pub fn mut_values(&mut self) -> impl Iterator<Item = &mut T> + '_ {
+            self.data.iter_mut()
+        }
+    }
+
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    enum Seat {
+        Floor,
+        Empty,
+        Occupied,
+    }
+
+    impl Display for Seat {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "{}",
+                match self {
+                    Seat::Floor => '.',
+                    Seat::Empty => 'L',
+                    Seat::Occupied => '#',
+                }
+            )
+        }
+    }
+
+    fn parse_layout(input: &str) -> Matrix<Seat> {
+        let mut data = vec![];
+        let mut columns = 0;
+        for line in input.lines() {
+            columns = line.len();
+            data.extend(line.chars().filter_map(|c| match c {
+                '.' => Some(Seat::Floor),
+                'L' => Some(Seat::Empty),
+                '#' => Some(Seat::Occupied),
+                _ => None,
+            }))
+        }
+        Matrix::from_column_vec(data, columns).unwrap()
+    }
+
+    fn simulate_a(mut start: Matrix<Seat>) -> Matrix<Seat> {
+        let mut simulated = start.clone();
+
+        loop {
+            // println!("{}", start);
+
+            for (coord, new_seat) in start.coords().zip(simulated.mut_values()) {
+                let seat = *start.get(coord).unwrap();
+                if seat == Seat::Floor {
+                    continue;
+                }
+                let neighbors = start.neighbors(coord, |_| true);
+                let occupied = neighbors
+                    .iter()
+                    .filter_map(|o| *o)
+                    .filter(|seat| **seat == Seat::Occupied)
+                    .count();
+
+                let seat_decision = if seat == Seat::Empty && occupied == 0 {
+                    Seat::Occupied
+                } else if seat == Seat::Occupied && occupied >= 4 {
+                    Seat::Empty
+                } else {
+                    seat
+                };
+
+                *new_seat = seat_decision;
+            }
+
+            if simulated == start {
+                return simulated;
+            }
+            std::mem::swap(&mut simulated, &mut start);
+        }
+    }
+
+    fn simulate_b(mut start: Matrix<Seat>) -> Matrix<Seat> {
+        let mut simulated = start.clone();
+
+        loop {
+            // println!("{}", start);
+
+            for (coord, new_seat) in start.coords().zip(simulated.mut_values()) {
+                let seat = *start.get(coord).unwrap();
+                if seat == Seat::Floor {
+                    continue;
+                }
+                let neighbors = start.neighbors(coord, |seat| *seat != Seat::Floor);
+                let occupied = neighbors
+                    .iter()
+                    .filter_map(|o| *o)
+                    .filter(|seat| **seat == Seat::Occupied)
+                    .count();
+
+                let seat_decision = if seat == Seat::Empty && occupied == 0 {
+                    Seat::Occupied
+                } else if seat == Seat::Occupied && occupied >= 5 {
+                    Seat::Empty
+                } else {
+                    seat
+                };
+
+                *new_seat = seat_decision;
+            }
+
+            if simulated == start {
+                return simulated;
+            }
+            std::mem::swap(&mut simulated, &mut start);
+        }
+    }
+
+    pub fn a(input: &str) -> usize {
+        let layout = parse_layout(input);
+        let mut layout = simulate_a(layout);
+        layout
+            .mut_values()
+            .filter(|seat| **seat == Seat::Occupied)
+            .count()
+    }
+
+    pub fn b(input: &str) -> usize {
+        let layout = parse_layout(input);
+        let mut layout = simulate_b(layout);
+        layout
+            .mut_values()
+            .filter(|seat| **seat == Seat::Occupied)
+            .count()
+    }
+}
+
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(day_08::a(&example("08")?), 5);
     assert_eq!(day_08::b(&example("08")?), 8);
@@ -241,5 +487,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     println!("day 10 a: {:?}", day_10::a(&input("10")?));
     println!("day 10 b: {:?}", day_10::b(&input("10")?));
 
+    assert_eq!(day_11::a(&example("11")?), 37);
+    assert_eq!(day_11::b(&example("11")?), 26);
+
+    println!("day 11 a: {:?}", day_11::a(&input("11")?));
+    println!("day 11 b: {:?}", day_11::b(&input("11")?));
     Ok(())
 }
