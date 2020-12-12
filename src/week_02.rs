@@ -433,6 +433,111 @@ mod day_11 {
     }
 }
 
+mod day_12 {
+
+    #[derive(Debug, Eq, PartialEq)]
+    enum Command {
+        North,
+        South,
+        East,
+        West,
+        Left,
+        Right,
+        Forward,
+    }
+
+    #[derive(Debug, Default)]
+    struct Ship {
+        direction: f64,
+        coord: Coord,
+    }
+
+    #[derive(Copy, Clone, Debug, Default)]
+    struct Coord {
+        x: f64,
+        y: f64,
+    }
+
+    impl Ship {
+        pub fn apply_command(&mut self, command: Command, value: f64) {
+            match command {
+                Command::North => self.coord.y += value,
+                Command::South => self.coord.y -= value,
+                Command::East => self.coord.x += value,
+                Command::West => self.coord.x -= value,
+                Command::Left => self.direction += value.to_radians(),
+                Command::Right => self.direction -= value.to_radians(),
+                Command::Forward => {
+                    let (y, x) = self.direction.sin_cos();
+                    self.coord.x += x * value;
+                    self.coord.y += y * value;
+                }
+            }
+        }
+    }
+
+    fn parse_command(input: &str) -> Option<(Command, f64)> {
+        let command = match input.chars().next()? {
+            'N' => Command::North,
+            'S' => Command::South,
+            'E' => Command::East,
+            'W' => Command::West,
+            'L' => Command::Left,
+            'R' => Command::Right,
+            'F' => Command::Forward,
+            _ => return None,
+        };
+
+        Some((command, input[1..].parse().ok()?))
+    }
+
+    pub fn a(input: &str) -> isize {
+        let mut ship = Ship::default();
+
+        for (command, value) in input.lines().filter_map(parse_command) {
+            ship.apply_command(command, value);
+        }
+
+        (ship.coord.x.abs() + ship.coord.y.abs()) as isize
+    }
+
+    pub fn b(input: &str) -> isize {
+        let mut coord_ship = Coord { x: 0., y: 0. };
+        let mut coord_waypoint = Coord { x: 10., y: 1. };
+
+        for (command, value) in input.lines().filter_map(parse_command) {
+            match command {
+                Command::North => coord_waypoint.y += value,
+                Command::South => coord_waypoint.y -= value,
+                Command::East => coord_waypoint.x += value,
+                Command::West => coord_waypoint.x -= value,
+                Command::Left => {
+                    let (sin, cos) = value.to_radians().sin_cos();
+                    let Coord { x, y } = coord_waypoint;
+                    coord_waypoint = Coord {
+                        x: x * cos - y * sin,
+                        y: y * cos + x * sin,
+                    };
+                }
+                Command::Right => {
+                    let (sin, cos) = (-value).to_radians().sin_cos();
+                    let Coord { x, y } = coord_waypoint;
+                    coord_waypoint = Coord {
+                        x: x * cos - y * sin,
+                        y: y * cos + x * sin,
+                    };
+                }
+                Command::Forward => {
+                    coord_ship.x += coord_waypoint.x * value;
+                    coord_ship.y += coord_waypoint.y * value;
+                }
+            }
+        }
+
+        (coord_ship.x.abs() + coord_ship.y.abs()) as isize
+    }
+}
+
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(day_08::a(&example("08")?), 5);
     assert_eq!(day_08::b(&example("08")?), 8);
@@ -457,7 +562,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(day_11::a(&example("11")?), 37);
     assert_eq!(day_11::b(&example("11")?), 26);
 
-    println!("day 11 a: {:?}", day_11::a(&input("11")?));
-    println!("day 11 b: {:?}", day_11::b(&input("11")?));
+    // println!("day 11 a: {:?}", day_11::a(&input("11")?));
+    // println!("day 11 b: {:?}", day_11::b(&input("11")?));
+
+    assert_eq!(day_12::a(&example("12")?), 25);
+    assert_eq!(day_12::b(&example("12")?), 286);
+
+    println!("day 12 a: {:?}", day_12::a(&input("12")?));
+    println!("day 12 b: {:?}", day_12::b(&input("12")?));
+
     Ok(())
 }
